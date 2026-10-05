@@ -1,0 +1,679 @@
+[
+  {
+    "id": "p102_temp_anomaly",
+    "question": "P-102 ha problemi di temperatura.",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_machine_status", "get_sensor_data", "get_maintenance_history", "get_open_work_orders", "search_manual"],
+    "expected_information": ["p-102", "93"],
+    "expected_sources": ["pump_manual.pdf", "troubleshooting.pdf"],
+    "expected_behavior": "propose_work_order"
+  },
+  {
+    "id": "p102_general_problems",
+    "question": "Perché P-102 sta dando problemi ultimamente?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_machine_status", "get_sensor_data", "get_maintenance_history", "get_open_work_orders", "search_manual"],
+    "expected_information": ["p-102", "93"],
+    "expected_sources": ["pump_manual.pdf", "troubleshooting.pdf"],
+    "expected_behavior": "propose_work_order"
+  },
+  {
+    "id": "p102_vibration_high",
+    "question": "Le vibrazioni di P-102 sono aumentate, è grave?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_sensor_data", "get_machine_status", "search_manual"],
+    "expected_information": ["p-102", "3.6"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "propose_work_order"
+  },
+  {
+    "id": "p102_temp_trend",
+    "question": "C'è un trend di temperatura in aumento su P-102?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_sensor_data", "search_manual"],
+    "expected_information": ["68", "93"],
+    "expected_sources": ["pump_manual.pdf", "troubleshooting.pdf"],
+    "expected_behavior": "propose_work_order"
+  },
+  {
+    "id": "p102_current_status",
+    "question": "Qual è lo stato attuale di P-102?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_machine_status", "get_sensor_data"],
+    "expected_information": ["p-102"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "p102_abnormal_noise",
+    "question": "P-102 fa un rumore anomalo, cosa può essere?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_sensor_data", "get_maintenance_history", "search_manual"],
+    "expected_information": ["p-102"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "propose_work_order"
+  },
+  {
+    "id": "p102_open_work_orders",
+    "question": "Ci sono work order aperti per P-102?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_open_work_orders"],
+    "expected_information": ["wo-1042"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "p102_last_maintenance",
+    "question": "Quando è stata l'ultima manutenzione di P-102?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_maintenance_history"],
+    "expected_information": ["2025"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "p102_overheat_cause",
+    "question": "Qual è la causa più probabile del surriscaldamento di P-102?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_sensor_data", "search_manual"],
+    "expected_information": ["p-102"],
+    "expected_sources": ["troubleshooting.pdf", "pump_manual.pdf"],
+    "expected_behavior": "propose_work_order"
+  },
+  {
+    "id": "p102_flow_drop",
+    "question": "La portata di P-102 è scesa negli ultimi giorni, è un problema?",
+    "category": "diagnosis_p102",
+    "machine": "P-102",
+    "expected_tools": ["get_sensor_data", "search_manual"],
+    "expected_information": ["p-102"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "propose_work_order"
+  },
+
+  {
+    "id": "p101_healthy",
+    "question": "P-101 è in condizioni normali?",
+    "category": "diagnosis_p101",
+    "machine": "P-101",
+    "expected_tools": ["get_machine_status", "get_sensor_data"],
+    "expected_information": ["p-101"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "p101_anomalies",
+    "question": "P-101 presenta anomalie?",
+    "category": "diagnosis_p101",
+    "machine": "P-101",
+    "expected_tools": ["get_machine_status", "get_sensor_data"],
+    "expected_information": ["p-101"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "p101_sensor_values",
+    "question": "Quali sono gli ultimi valori dei sensori di P-101?",
+    "category": "diagnosis_p101",
+    "machine": "P-101",
+    "expected_tools": ["get_sensor_data"],
+    "expected_information": ["p-101"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "p101_type_location",
+    "question": "Che tipo di macchina è P-101 e dove si trova?",
+    "category": "diagnosis_p101",
+    "machine": "P-101",
+    "expected_tools": ["get_machine_status"],
+    "expected_information": ["p-101"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "p101_install_date",
+    "question": "Da quando è installata P-101?",
+    "category": "diagnosis_p101",
+    "machine": "P-101",
+    "expected_tools": ["get_machine_status"],
+    "expected_information": ["2021"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "p101_last_maintenance",
+    "question": "Quando è stata l'ultima manutenzione di P-101?",
+    "category": "diagnosis_p101",
+    "machine": "P-101",
+    "expected_tools": ["get_maintenance_history"],
+    "expected_information": ["2025"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+
+  {
+    "id": "c201_loud_noise",
+    "question": "C-201 fa molto rumore.",
+    "category": "diagnosis_c201",
+    "machine": "C-201",
+    "expected_tools": ["get_machine_status", "get_sensor_data", "get_maintenance_history", "search_manual"],
+    "expected_information": ["c-201"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "c201_discharge_temp",
+    "question": "La temperatura di mandata di C-201 è normale?",
+    "category": "diagnosis_c201",
+    "machine": "C-201",
+    "expected_tools": ["get_sensor_data", "search_manual"],
+    "expected_information": ["c-201", "138"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "c201_general_problems",
+    "question": "C-201 ha problemi?",
+    "category": "diagnosis_c201",
+    "machine": "C-201",
+    "expected_tools": ["get_machine_status", "get_sensor_data", "get_maintenance_history", "search_manual"],
+    "expected_information": ["c-201"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "c201_discharge_pressure",
+    "question": "Qual è la pressione di mandata attuale di C-201?",
+    "category": "diagnosis_c201",
+    "machine": "C-201",
+    "expected_tools": ["get_sensor_data"],
+    "expected_information": ["c-201", "11.4"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "c201_last_maintenance",
+    "question": "Quando è stata l'ultima manutenzione di C-201?",
+    "category": "diagnosis_c201",
+    "machine": "C-201",
+    "expected_tools": ["get_maintenance_history"],
+    "expected_information": ["2025"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "c201_open_work_orders",
+    "question": "Ci sono work order aperti per C-201?",
+    "category": "diagnosis_c201",
+    "machine": "C-201",
+    "expected_tools": ["get_open_work_orders"],
+    "expected_information": ["c-201"],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "c201_shared_cooling",
+    "question": "C-201 e P-102 condividono il circuito di raffreddamento?",
+    "category": "diagnosis_c201",
+    "machine": "C-201",
+    "expected_tools": ["search_manual"],
+    "expected_information": ["c-201"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "c201_cooling_pressure_drop",
+    "question": "Cosa succede a C-201 se cala la pressione dell'acqua di raffreddamento?",
+    "category": "diagnosis_c201",
+    "machine": "C-201",
+    "expected_tools": ["search_manual"],
+    "expected_information": ["c-201"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+
+  {
+    "id": "pm_schedule_p1xx",
+    "question": "Qual è il piano di manutenzione programmata per le pompe P-1xx?",
+    "category": "procedure",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["giornalier", "trimestral"],
+    "expected_sources": ["maintenance_procedures.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pm_vibration_frequency",
+    "question": "Con quale frequenza va fatta l'analisi delle vibrazioni sulle pompe?",
+    "category": "procedure",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["trimestral"],
+    "expected_sources": ["maintenance_procedures.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pm_high_temp_alarm",
+    "question": "Cosa devo fare quando ricevo un allarme di alta temperatura su un'attrezzatura rotante?",
+    "category": "procedure",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["30"],
+    "expected_sources": ["maintenance_procedures.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pm_walkdown_time",
+    "question": "Dentro quanto tempo l'operatore di campo deve fare l'ispezione dopo un allarme di temperatura?",
+    "category": "procedure",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["30"],
+    "expected_sources": ["maintenance_procedures.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pm_critical_spares",
+    "question": "Quali ricambi critici vanno tenuti in magazzino per le pompe P-100 e a quale livello minimo?",
+    "category": "procedure",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["cuscinett", "sigill"],
+    "expected_sources": ["maintenance_procedures.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pm_temp_trending",
+    "question": "Perché è importante tracciare nel tempo la temperatura dei cuscinetti?",
+    "category": "procedure",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["lubrificazione"],
+    "expected_sources": ["maintenance_procedures.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pm_trip_setpoint",
+    "question": "Cosa fare se la temperatura di un'attrezzatura supera il trip setpoint?",
+    "category": "procedure",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["spegn"],
+    "expected_sources": ["maintenance_procedures.pdf", "safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pm_after_alarm",
+    "question": "Dopo un allarme di alta temperatura, chi viene notificato e cosa si apre?",
+    "category": "procedure",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["manutenzione"],
+    "expected_sources": ["maintenance_procedures.pdf"],
+    "expected_behavior": "answer_only"
+  },
+
+  {
+    "id": "safety_loto",
+    "question": "Cos'è la procedura LOTO e quando si applica?",
+    "category": "safety",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["loto"],
+    "expected_sources": ["safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "safety_loto_personnel",
+    "question": "Quante persone autorizzate devono verificare la procedura di LOTO?",
+    "category": "safety",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["2"],
+    "expected_sources": ["safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "safety_touch_limit",
+    "question": "A quale temperatura non si deve toccare direttamente la superficie di una pompa o di un compressore?",
+    "category": "safety",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["60"],
+    "expected_sources": ["safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "safety_esd_criteria",
+    "question": "In quali casi l'attrezzatura deve essere spenta immediatamente?",
+    "category": "safety",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["fumo"],
+    "expected_sources": ["safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "safety_ptw",
+    "question": "Cos'è il Permit to Work (PTW)?",
+    "category": "safety",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["permit"],
+    "expected_sources": ["safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "safety_ppe_compressor",
+    "question": "Quale DPI è obbligatorio lavorare nelle aree dei compressori?",
+    "category": "safety",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["uditiv", "acustic"],
+    "expected_sources": ["safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "safety_incident_logging",
+    "question": "Devo registrare un allarme di temperatura ricorrente anche se non spegno l'attrezzatura?",
+    "category": "safety",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["registr"],
+    "expected_sources": ["safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+
+  {
+    "id": "pump_rated_flow",
+    "question": "Qual è la portata nominale delle pompe P-100?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["250"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pump_rated_head_power",
+    "question": "Quali sono la testa nominale e la potenza del motore delle pompe P-100?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["45", "75"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pump_max_bearing_temp",
+    "question": "Qual è la temperatura massima consentita del cuscinetto di una pompa P-100?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["85"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pump_max_casing_temp",
+    "question": "Qual è la temperatura massima consentita del corpo pompa (casing) delle pompe P-100?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["90"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pump_lubrication_oil",
+    "question": "Che olio di lubrificazione si usa nelle pompe P-100?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["vg 68"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pump_cooling_min_pressure",
+    "question": "Sotto quale pressione dell'acqua di raffreddamento il raffreddamento dei cuscinetti diventa insufficiente?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["1.5"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pump_bep_range",
+    "question": "In quale intervallo di portata, rispetto al Best Efficiency Point, deve funzionare la pompa?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["70", "110"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pump_overheating_causes",
+    "question": "Quali sono le cause più comuni di surriscaldamento delle pompe P-100?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["cavitazion"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "pump_inspection_sequence",
+    "question": "Qual è la sequenza di ispezione consigliata quando una pompa P-100 dà un allarme di temperatura?",
+    "category": "pump_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["olio"],
+    "expected_sources": ["pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+
+  {
+    "id": "comp_max_discharge_pressure",
+    "question": "Qual è la pressione di mandata massima della serie di compressori C-200?",
+    "category": "compressor_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["12"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "comp_rated_capacity",
+    "question": "Qual è la capacità nominale del compressore C-200?",
+    "category": "compressor_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["1200"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "comp_max_discharge_temp",
+    "question": "Qual è la temperatura massima di mandata del compressore C-200?",
+    "category": "compressor_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["150"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "comp_high_discharge_checklist",
+    "question": "Cosa controllare se la temperatura di mandata del compressore è alta?",
+    "category": "compressor_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["valvol"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "comp_c201_downstream",
+    "question": "A quale attrezzatura fornisce il gas compresso il compressore C-201?",
+    "category": "compressor_manual",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["separat"],
+    "expected_sources": ["compressor_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+
+  {
+    "id": "ts_p102_most_common_cause",
+    "question": "Qual è la causa più frequente della temperatura alta del cuscinetto di P-102?",
+    "category": "troubleshooting",
+    "machine": "P-102",
+    "expected_tools": ["search_manual"],
+    "expected_information": ["raffreddamento"],
+    "expected_sources": ["troubleshooting.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "ts_dual_alarm",
+    "question": "Se P-102 e C-201 hanno entrambe temperature alte, cosa controllo per primo?",
+    "category": "troubleshooting",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["raffreddamento"],
+    "expected_sources": ["troubleshooting.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "ts_bearing_wear_months",
+    "question": "Dopo quanti mesi dal ricambio un cuscinetto consumato diventa una causa plausibile di guasto?",
+    "category": "troubleshooting",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["18"],
+    "expected_sources": ["troubleshooting.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "ts_escalation",
+    "question": "Se il circuito di raffreddamento è a posto ma le temperature restano alte, cosa faccio?",
+    "category": "troubleshooting",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["spegn"],
+    "expected_sources": ["troubleshooting.pdf", "safety_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "ts_cavitation",
+    "question": "Cosa causa la cavitazione in una pompa?",
+    "category": "troubleshooting",
+    "machine": null,
+    "expected_tools": ["search_manual"],
+    "expected_information": ["npsh"],
+    "expected_sources": ["troubleshooting.pdf", "pump_manual.pdf"],
+    "expected_behavior": "answer_only"
+  },
+
+  {
+    "id": "general_how_pump_works",
+    "question": "Come funziona una pompa centrifuga?",
+    "category": "general_knowledge",
+    "machine": null,
+    "expected_tools": [],
+    "expected_information": [],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "general_npsh",
+    "question": "Cos'è il NPSH?",
+    "category": "general_knowledge",
+    "machine": null,
+    "expected_tools": [],
+    "expected_information": [],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "general_bep",
+    "question": "Cos'è il Best Efficiency Point (BEP) di una pompa?",
+    "category": "general_knowledge",
+    "machine": null,
+    "expected_tools": [],
+    "expected_information": [],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+  {
+    "id": "general_pm_vs_cm",
+    "question": "Che differenza c'è tra manutenzione preventiva e manutenzione correttiva?",
+    "category": "general_knowledge",
+    "machine": null,
+    "expected_tools": [],
+    "expected_information": [],
+    "expected_sources": [],
+    "expected_behavior": "answer_only"
+  },
+
+  {
+    "id": "oos_p305_bearing_temp",
+    "question": "Qual è la temperatura massima del cuscinetto della pompa P-305?",
+    "category": "out_of_scope",
+    "machine": "P-305",
+    "expected_tools": ["get_machine_status"],
+    "expected_information": [],
+    "expected_sources": [],
+    "expected_behavior": "answer_only",
+    "should_refuse": true,
+    "note": "P-305 non esiste nel CMMS né nei manuali: l'agente deve dirlo, non inventare un valore."
+  },
+  {
+    "id": "oos_c201_oil_volume",
+    "question": "Quanti litri di olio usa il compressore C-201 per la lubrificazione?",
+    "category": "out_of_scope",
+    "machine": "C-201",
+    "expected_tools": [],
+    "expected_information": [],
+    "expected_sources": [],
+    "expected_behavior": "answer_only",
+    "should_refuse": true,
+    "note": "Il volume d'olio non è presente in nessun manuale: l'agente deve dichiarare che l'informazione non è disponibile."
+  },
+  {
+    "id": "oos_bearing_cost",
+    "question": "Quanto costa il ricambio dei cuscinetti di P-102?",
+    "category": "out_of_scope",
+    "machine": "P-102",
+    "expected_tools": [],
+    "expected_information": [],
+    "expected_sources": [],
+    "expected_behavior": "answer_only",
+    "should_refuse": true,
+    "note": "I costi non sono presenti nei manuali né nel CMMS: l'agente deve rifiutare onestamente."
+  },
+  {
+    "id": "oos_cmms_software",
+    "question": "Quale software CMMS usa la nostra azienda?",
+    "category": "out_of_scope",
+    "machine": null,
+    "expected_tools": [],
+    "expected_information": [],
+    "expected_sources": [],
+    "expected_behavior": "answer_only",
+    "should_refuse": true,
+    "note": "Non documentato: l'agente non deve inventare un nome di prodotto."
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "k": 6,
+  "persist_dir": "evals/indices/chroma_v2",
+  "llm_model": "llama3.1",
+  "embedding_model": "nomic-embed-text",
+  "prompt": "Sei un assistente tecnico per la manutenzione industriale.\nRispondi alla domanda dell'utente usando SOLO le informazioni contenute nel contesto qui sotto.\nCita sempre la fonte (nome del file e sezione) quando riferisci un valore o una procedura.\nSe il contesto non contiene informazioni sufficienti per rispondere, dillo chiaramente e non inventare valori, nomi o procedure.\n\nContesto:\n{context}\n\nDomanda: {question}\n\nRisposta:"
+}

@@ -1,0 +1,34 @@
+"""
+Agent - Registro dei tool
+
+Ogni tool ora è una chiamata all'API REST del CMMS (via cmms_client), non più
+una funzione che legge dati in memoria. Il grafo non cambia: cambia solo
+cosa c'è dietro al registro.
+"""
+
+import cmms_client
+from rag import RagPipeline
+
+_rag_pipeline = RagPipeline()
+
+
+def _search_manual(query: str) -> dict:
+    answer, sources = _rag_pipeline.answer(query)
+    return {"answer": answer, "sources": sources}
+
+
+TOOL_REGISTRY = {
+    "get_machine_status": cmms_client.get_machine_status,
+    "get_sensor_data": cmms_client.get_sensor_data,
+    "get_maintenance_history": cmms_client.get_maintenance_history,
+    "get_open_work_orders": cmms_client.get_open_work_orders,
+    "search_manual": _search_manual,
+}
+
+TOOL_DESCRIPTIONS = """\
+- get_machine_status(machine_id): stato generale e anagrafica della macchina (dal CMMS).
+- get_sensor_data(machine_id): ultime letture sensori (temperature, vibrazioni, portata...) dal CMMS.
+- get_maintenance_history(machine_id): storico interventi di manutenzione (con tecnico) dal CMMS.
+- get_open_work_orders(machine_id): work order attivi (aperti o in corso) per la macchina, dal CMMS.
+- search_manual(query): cerca cause note, soglie di allarme e procedure nei manuali tecnici.
+"""

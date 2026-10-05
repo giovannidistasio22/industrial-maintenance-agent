@@ -1,0 +1,188 @@
+# FASE 13 - CI/CD
+#
+# Pipeline:  git push -> lint -> unit -> integration -> docker -> security -> deploy
+#
+# Secrets (GitHub repo -> Settings -> Secrets and variables -> Actions):
+#   DEPLOY_HOST     IP/DNS del server (es. 10.0.40.100)
+#   DEPLOY_USER     utente SSH sul server (es. gstasio)
+#   DEPLOY_SSH_KEY  chiave SSH privata con accesso al server
+#
+# Il deploy gira SOLO su push a main e SOLO se tutti i job precedenti
+# sono passati (needs: [docker-build, security]).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ------------------------------------------------------------------ LINT
+  # PERCHE': analisi statica, la gate piu' economica (secondi, zero
+  # infrastruttura). Cattura una classe di bug (variabili inutilizzate,
+  # import morti, typo) e impone coerenza di stile PRIMA di far girare i
+  # test, che costano di piu'.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint Python (ruff)
+        uses: astral-sh/ruff-action@v1
+        with:
+          src: "src/ tests/ evals/"
+
+      - name: Lint TypeScript (eslint + type check)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: eslint + tsc
+        working-directory: web
+        run: |
+          npm ci
+          npm run lint
+          npx tsc --noEmit
+
+  # ------------------------------------------------------------------ UNIT
+  # PERCHE': verifica ogni componente ISOLATO (client CMMS, API CMMS, RAG,
+  # osservabilita'). I test sono ermetici (niente PostgreSQL, niente
+  # Ollama, niente porte): veloci e deterministici, e localizzano il
+  # guasto al singolo componente.
+  unit-tests:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-file: requirements-docker.txt
+      - name: Install dependencies
+        run: pip install -r requirements-docker.txt pytest
+      - name: Unit tests
+        run: pytest tests/test_unit_*.py tests/test_eval_metrics.py -q
+
+  # ------------------------------------------------------------- INTEGRATION
+  # PERCHE': i test unit possono essere tutti verdi mentre le "cuciture"
+  # tra i componenti sono rotte (contratto Agent -> Tool -> CMMS,
+  # serializzazione HTTP, flusso di conferma HITL). Qui si verifica la
+  # catena COMPLETA con HTTP reale (CMMS in-process) e LLM scriptato.
+  integration-tests:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-file: requirements-docker.txt
+      - name: Install dependencies
+        run: pip install -r requirements-docker.txt pytest
+      - name: Integration tests (Agent -> Tool -> CMMS)
+        run: pytest tests/test_integration_*.py tests/test_agent_dataset.py -q
+
+  # ------------------------------------------------------------------ DOCKER
+  # PERCHE': un cambio di codice puo' rompere l'IMMAGINE (dipendenza
+  # mancante in requirements-docker.txt, versione Python diversa) pur
+  # avendo tutti i test verdi. Qui si verifica che l'immagine si compili
+  # E che l'app parta dentro (smoke test).
+  docker-build:
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          tags: industrial-maintenance-agent:ci
+          load: true
+      - name: Smoke test (l'app parte dentro l'immagine)
+        run: |
+          docker run -d --name smoke -p 8003:8003 \
+            -e CMMS_BASE_URL=http://localhost:9999 \
+            industrial-maintenance-agent:ci \
+            uvicorn main9:app --host 0.0.0.0 --port 8003
+          ok=""
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8003/health; then ok=1; break; fi
+            sleep 1
+          done
+          if [ -z "$ok" ]; then
+            echo "FAIL: l'app non e' partita nell'immagine"
+            docker logs smoke
+            exit 1
+          fi
+          docker rm -f smoke
+
+  # ---------------------------------------------------------------- SECURITY
+  # PERCHE': le dipendenze "derivano": una versione nuova puo' introdurre
+  # CVE note. Trivy scansiona l'immagine (pacchetti OS + Python), pip-audit
+  # le dipendenze Python. Le vulnerabilita' HIGH/CRITICAL bloccano il deploy.
+  security:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          tags: industrial-maintenance-agent:ci
+          load: true
+      - name: Trivy (vulnerabilita' dell'immagine)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "industrial-maintenance-agent:ci"
+          exit-code: "1"
+          severity: "HIGH,CRITICAL"
+          ignore-unfixed: true
+      - name: pip-audit (dipendenze Python)
+        run: |
+          pip install pip-audit
+          # Allowlist documentata: chromadb 1.5.9 (l'ultima disponibile) ha
+          # 4 CVE lato server senza fix upstream (CVE-2026-45829/45830/
+          # 45831/45833). Rischio accettato: il server Chroma gira solo in
+          # rete interna Docker, non e' esposto verso l'esterno.
+          pip-audit -r requirements-docker.txt \
+            --ignore-vuln PYSEC-2026-311 \
+            --ignore-vuln PYSEC-2026-3813 \
+            --ignore-vuln PYSEC-2026-3814 \
+            --ignore-vuln PYSEC-2026-3815
+
+  # ----------------------------------------------------------------- DEPLOY
+  # PERCHE': ultima gate, eseguita SOLO su main e SOLO se tutto il resto e'
+  # passato. Deploya codice gia' validato e verifica l'ESITO con health
+  # check (non basta che il comando esca con 0: lo stack deve rispondere).
+  deploy:
+    needs: [docker-build, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Deploy sul server (deploy/deploy.sh)
+        run: |
+          eval $(ssh-agent -s)
+          ssh -o StrictHostKeyChecking=accept-new \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "bash ~/Progetti/industrial-maintenance-agent/deploy/deploy.sh"

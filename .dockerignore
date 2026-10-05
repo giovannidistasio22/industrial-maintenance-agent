@@ -1,0 +1,22 @@
+# FASE 11 - cosa NON mettere nell'immagine
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+logs/
+tests/
+evals/
+# Artefatti locali: in Docker i DB sono esterni (PostgreSQL + server Chroma)
+src/chroma_db/
+src/cmms.db
+src/memory.sqlite*
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+# Metadati del progetto (i PDF di docs/ restano: li usa il servizio 'ingest')
+README.md
+env.yml
+docker-compose.yml
+Dockerfile
+.dockerignore
+requirements.txt
