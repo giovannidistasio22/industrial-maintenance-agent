@@ -1244,3 +1244,88 @@ VITE_API_BASE=http://localhost:8003 npm run build
 - **Docker**: il frontend NON e' containerizzato in `docker-compose.yml`
   (resta un'app di sviluppo su `npm run dev`). Se serve, e' un servizio
   nginx in più con `web/dist` montato.
+
+# FASE 13 - CI/CD (GitHub Actions)
+
+```
+git push
+   |
+   v
+GitHub Actions (.github/workflows/ci.yml)
+   |
+   v
+Lint            ruff (Python) + eslint/tsc (TypeScript)
+   |
+   v
+Unit tests      pytest tests/test_unit_*.py + test_eval_metrics.py
+   |
+   v
+Integration     pytest tests/test_integration_*.py + test_agent_dataset.py
+   |
+   v
+Build Docker    buildx + smoke test (l'app parte dentro l'immagine)
+   |
+   v
+Security        Trivy (CVE immagine) + pip-audit (dipendenze Python)
+   |
+   v
+Deploy          SSH -> deploy/deploy.sh (solo su main, se tutto e' verde)
+```
+
+## Perché ogni fase esiste
+
+Ogni gate blocca una classe diversa di difetto, al costo più basso possibile:
+
+| Fase | Cosa blocca | Perché esiste |
+|---|---|---|
+| **Lint** | Bug banali (variabili inutilizzate, import morti, typo) + stile incoerente | È la gate più economica: secondi, zero infrastruttura. Cattura una classe di errori PRIMA di far girare i test (che costano di più) e mantiene il codice leggibile. |
+| **Unit tests** | Regressioni logiche nei singoli componenti (client CMMS, API CMMS, RAG, osservabilità) | I test sono ermetici (niente PostgreSQL, Ollama né porte: CMMS in-process, LLM scriptato): veloci e deterministici, e localizzano il guasto al componente. |
+| **Integration tests** | Le "cuciture": i test unit possono essere tutti verdi mentre il contratto Agent → Tool → CMMS, la serializzazione HTTP o il flusso HITL sono rotti | Verifica la catena COMPLETA (HTTP reale verso il CMMS in-process, LLM scriptato): è il livello che corrisponde a "l'agente funziona davvero". |
+| **Build Docker** | Un cambio che rompe l'IMMAGINE (dipendenza mancante in `requirements-docker.txt`, Python incompatibile) pur avendo i test verdi | I test girano in un venv, non nell'immagine: senza questa fase un deploy potrebbe fallire solo sul server. Lo smoke test (l'app parte dentro l'immagine) copre anche i guasti di wiring. |
+| **Security check** | Dipendenze con CVE note (le dipendenze "derivano": una versione nuova può portare vulnerabilità note) | Trivy scansiona l'immagine (pacchetti OS + Python), pip-audit le dipendenze Python. HIGH/CRITICAL bloccano il deploy. Le eccezioni sono esplicite e documentate (allowlist `--ignore-vuln` con motivazione nel workflow). |
+| **Deploy** | Niente: è l'azione, non un gate | Esegue solo su `main` e solo se `needs: [docker-build, security]` è verde. Sul server: `git pull` + `docker compose up --build` + **health check** (verifica l'ESITO: lo stack deve rispondere, non basta che il comando esca con 0). |
+
+## File
+
+| File | Ruolo |
+|---|---|
+| `.github/workflows/ci.yml` | La pipeline (6 job, con il "perché" di ciascuno in commento) |
+| `ruff.toml` | Config lint Python (set conservativo: E4, E7, E9, F) |
+| `web/eslint.config.js` | Config lint TypeScript/React (ESLint 9 flat + rules of hooks) |
+| `deploy/deploy.sh` | Script di deploy eseguito SULLO SERVER dalla CI (git pull + compose + health check) |
+| `web/package-lock.json` | Lockfile per `npm ci` riproducibile in CI |
+
+## Setup una tantum
+
+1. **Repo GitHub**: crea il repo e collega questo directory:
+   ```bash
+   git remote add origin git@github.com:<utente>/industrial-maintenance-agent.git
+   git push -u origin main
+   ```
+   La CI parte a ogni push (e su ogni PR).
+
+2. **Secrets** (GitHub → repo → Settings → Secrets and variables → Actions):
+   | Secret | Valore |
+   |---|---|
+   | `DEPLOY_HOST` | IP/DNS del server (es. `10.0.40.100`) |
+   | `DEPLOY_USER` | utente SSH sul server (es. `gstasio`) |
+   | `DEPLOY_SSH_KEY` | chiave privata con accesso al server |
+
+3. **Sul server**: la cartella del progetto deve essere un repo git con
+   l'origin GitHub (`git remote -v`), perché `deploy.sh` fa `git pull`.
+
+## Note
+
+- **Deploy**: solo su push a `main` (i PR fanno tutte le verifiche ma non
+  deployano). `environment: production` permette di aggiungere un'approvazione
+  manuale (GitHub → Settings → Environments → `production` → Required reviewers).
+- **Allowlist sicurezza**: `chromadb 1.5.9` (l'ultima disponibile) ha 4 CVE
+  lato server senza fix upstream (CVE-2026-45829/45830/45831/45833). Rischio
+  accettato e documentato nel workflow: il server Chroma gira solo in rete
+  interna Docker, non è esposto verso l'esterno. Quando uscirà una versione
+  fixata: si alza la dipendenza e si toglie l'allowlist.
+- **Costo**: i job usano runner GitHub gratuiti (ubuntu-latest); la pipeline
+  completa è ~5-8 minuti (build Docker inclusa).
+- **Evoluzione naturale** (fuori scope): registry (GHCR) per build-una-volta/
+  deploy-artefatto, image signing, canary deploy, e notifica su canale team a
+  deploy fallito.
