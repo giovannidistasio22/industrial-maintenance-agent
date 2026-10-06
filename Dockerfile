@@ -9,6 +9,15 @@
 # Build:  docker compose up --build
 FROM python:3.12-slim
 
+# Aggiorna i pacchetti OS della base image: il tag python:3.12-slim
+# "galleggia", ma un'immagine gia' buildata resta ferma sulla versione
+# Debian del momento. Aggiornando qui, ogni build incorpora gli ultimi
+# fix di sicurezza Debian (es. CVE su libpcre2) e la gate Trivy passa.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Dipendenze prima del codice: cosi' le modifiche al codice non forzano

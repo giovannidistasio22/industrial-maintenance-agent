@@ -1,0 +1,57 @@
+# Scan di sicurezza notturno
+#
+# PERCHE': la base image (python:3.12-slim) e' un tag "fluttuante": quando
+# Debian pubblica una nuova CVE, l'immagine gia' buildata resta vulnerabile
+# finche' non viene ricompilata. La gate Trivy in CI (ci.yml) blocca il
+# deploy solo al prossimo push, che potrebbe essere tra giorni. Questo
+# workflow ricompila l'immagine OGNI notte e la scansiona: cosi' una nuova
+# CVE sulla base image emerge come job rosso la mattina, e si risolve con
+# un push (la base image fluttuante + apt-get upgrade nel Dockerfile
+# bastano a incorporare il fix).
+#
+# NON deploya: e' solo un allarme precoce.
+
+name: Security Nightly
+
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: security-nightly
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # Stessa build + stessa gate della pipeline CI, ma senza deploy.
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          tags: industrial-maintenance-agent:ci
+          load: true
+      - name: Trivy (vulnerabilita' dell'immagine)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "industrial-maintenance-agent:ci"
+          exit-code: "1"
+          severity: "HIGH,CRITICAL"
+          ignore-unfixed: true
+      - name: pip-audit (dipendenze Python)
+        run: |
+          pip install pip-audit
+          # Allowlist documentata: vedi .github/workflows/ci.yml
+          pip-audit -r requirements-docker.txt \
+            --ignore-vuln PYSEC-2026-311 \
+            --ignore-vuln PYSEC-2026-3813 \
+            --ignore-vuln PYSEC-2026-3814 \
+            --ignore-vuln PYSEC-2026-3815
