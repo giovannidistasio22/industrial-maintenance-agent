@@ -2,13 +2,11 @@
 #
 # Pipeline:  git push -> lint -> unit -> integration -> docker -> security -> deploy
 #
-# Secrets (GitHub repo -> Settings -> Secrets and variables -> Actions):
-#   DEPLOY_HOST     IP/DNS del server (es. 10.0.40.100)
-#   DEPLOY_USER     utente SSH sul server (es. gstasio)
-#   DEPLOY_SSH_KEY  chiave SSH privata con accesso al server
-#
-# Il deploy gira SOLO su push a main e SOLO se tutti i job precedenti
-# sono passati (needs: [docker-build, security]).
+# Il job deploy gira su un runner SELF-HOSTED installato sul server
+# (GitHub repo -> Settings -> Actions -> Runners). I runner pubblici di
+# GitHub non raggiungono la rete LAN (10.0.40.x), quindi il deploy e'
+# locale: il runner esegue deploy/deploy.sh direttamente sul server,
+# senza SSH e senza chiavi da gestire.
 
 name: CI
 
@@ -170,19 +168,16 @@ jobs:
   # PERCHE': ultima gate, eseguita SOLO su main e SOLO se tutto il resto e'
   # passato. Deploya codice gia' validato e verifica l'ESITO con health
   # check (non basta che il comando esca con 0: lo stack deve rispondere).
+  #
+  # runs-on self-hosted: il runner e' installato SUL server, quindi il
+  # deploy e' locale (niente SSH: i runner pubblici non vedono la LAN).
+  # Il runner esegue deploy.sh dalla copia del repo che gia' esiste sul
+  # server; lo script fa git pull + rebuild + health check.
   deploy:
     needs: [docker-build, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     environment: production
     steps:
-      - name: SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
       - name: Deploy sul server (deploy/deploy.sh)
-        run: |
-          eval $(ssh-agent -s)
-          ssh -o StrictHostKeyChecking=accept-new \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "bash ~/Progetti/industrial-maintenance-agent/deploy/deploy.sh"
+        run: bash ~/Progetti/industrial-maintenance-agent/deploy/deploy.sh

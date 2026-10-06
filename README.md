@@ -1269,7 +1269,7 @@ Build Docker    buildx + smoke test (l'app parte dentro l'immagine)
 Security        Trivy (CVE immagine) + pip-audit (dipendenze Python)
    |
    v
-Deploy          SSH -> deploy/deploy.sh (solo su main, se tutto e' verde)
+Deploy          runner self-hosted -> deploy/deploy.sh (solo su main, se tutto e' verde)
 ```
 
 ## Perché ogni fase esiste
@@ -1304,15 +1304,16 @@ Ogni gate blocca una classe diversa di difetto, al costo più basso possibile:
    ```
    La CI parte a ogni push (e su ogni PR).
 
-2. **Secrets** (GitHub → repo → Settings → Secrets and variables → Actions):
-   | Secret | Valore |
-   |---|---|
-   | `DEPLOY_HOST` | IP/DNS del server (es. `10.0.40.100`) |
-   | `DEPLOY_USER` | utente SSH sul server (es. `gstasio`) |
-   | `DEPLOY_SSH_KEY` | chiave privata con accesso al server |
+2. **Runner self-hosted SUL SERVER** (GitHub → repo → Settings → Actions →
+   Runners → *New self-hosted runner*, Linux/x64): scarica il runner,
+   configuralo con il token mostrato e avvialo come servizio systemd.
+   Il job `deploy` gira su questo runner e esegue `deploy.sh` in locale:
+   i runner pubblici di GitHub non raggiungono la rete LAN, quindi
+   niente SSH e niente secret.
 
 3. **Sul server**: la cartella del progetto deve essere un repo git con
    l'origin GitHub (`git remote -v`), perché `deploy.sh` fa `git pull`.
+   L'utente del runner deve poter eseguire `docker compose` (gruppo docker).
 
 ## Note
 
@@ -1324,8 +1325,9 @@ Ogni gate blocca una classe diversa di difetto, al costo più basso possibile:
   accettato e documentato nel workflow: il server Chroma gira solo in rete
   interna Docker, non è esposto verso l'esterno. Quando uscirà una versione
   fixata: si alza la dipendenza e si toglie l'allowlist.
-- **Costo**: i job usano runner GitHub gratuiti (ubuntu-latest); la pipeline
-  completa è ~5-8 minuti (build Docker inclusa).
+- **Costo**: i job di verifica usano runner GitHub gratuiti (ubuntu-latest);
+  il job `deploy` gira sul runner self-hosted (zero minuti GitHub). La
+  pipeline completa è ~5-8 minuti (build Docker inclusa).
 - **Evoluzione naturale** (fuori scope): registry (GHCR) per build-una-volta/
   deploy-artefatto, image signing, canary deploy, e notifica su canale team a
   deploy fallito.
