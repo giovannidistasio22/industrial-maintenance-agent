@@ -1,0 +1,67 @@
+# FASE 15 - Chroma (vector DB dei manuali)
+#
+# Mappatura da docker-compose:
+#   service chroma (chromadb/chroma:1.5.9) + volume chroma_data
+#     -> Deployment + PVC + Service
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: chroma-data
+  namespace: im-agent
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chroma
+  namespace: im-agent
+  labels:
+    app: chroma
+spec:
+  replicas: 1   # il server Chroma persiste in /data: piu' repliche
+                # significherebbero 2 processi sullo stesso storage.
+  selector:
+    matchLabels:
+      app: chroma
+  template:
+    metadata:
+      labels:
+        app: chroma
+    spec:
+      containers:
+        - name: chroma
+          image: chromadb/chroma:1.5.9
+          ports:
+            - containerPort: 8000
+          # L'immagine e' minimale (niente curl): health check TCP via
+          # bash, stesso trucco del healthcheck di docker-compose.
+          readinessProbe:
+            exec:
+              command: ["bash", "-c", "exec 3<>/dev/tcp/localhost/8000"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: chroma-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chroma
+  namespace: im-agent
+spec:
+  selector:
+    app: chroma
+  ports:
+    - port: 8000
+      targetPort: 8000

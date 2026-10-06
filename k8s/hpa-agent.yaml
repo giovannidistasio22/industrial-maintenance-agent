@@ -1,0 +1,32 @@
+# FASE 15 - HPA (HorizontalPodAutoscaler): scaling orizzontale automatico.
+#
+# k8s guarda la CPU media dei pod dell'agente e aggiusta le repliche
+# (2..5) per tenere la CPU sotto il 70%. E' il "scaling" della fase:
+# niente cron, niente script: il controller lo fa da solo.
+#
+# Richiede il metrics-server (installato da scripts/01-create-cluster.sh):
+# senza di lui l'HPA non ha metriche e resta fermo al minimo.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agent
+  namespace: im-agent
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agent
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  # quanto spesso ricalcolare (default 30s)
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300   # non ridurre subito: evita
+                                         # oscillazioni (scale flap)

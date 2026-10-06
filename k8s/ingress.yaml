@@ -1,0 +1,50 @@
+# FASE 15 - Ingress: il "portale" HTTP del cluster.
+#
+# NodePort espone su una porta per nodo; l'Ingress e' il modo "vero"
+# di esporre HTTP: un unico punto d'ingresso (l'Ingress Controller,
+# qui nginx) che instrada per HOST (o per path) sui Service.
+#
+# Richiede l'addon ingress-nginx (installato da scripts/01-create-cluster.sh)
+# e le voci /etc/hosts (o DNS) sul client:
+#   127.0.0.1  cmms.im.local agent.im.local
+#
+# E' l'equivalente k8s di "un reverse proxy davanti ai servizi".
+# Su EKS al posto di nginx si usa l'ALB Ingress Controller.
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cmms
+  namespace: im-agent
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cmms.im.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cmms
+                port:
+                  number: 8010
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agent
+  namespace: im-agent
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: agent.im.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agent
+                port:
+                  number: 8003

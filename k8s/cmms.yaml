@@ -1,0 +1,77 @@
+# FASE 15 - CMMS (API REST, main6.py)
+#
+# Mappatura da docker-compose:
+#   service cmms (immagine dello stack, seed + uvicorn su 8010)
+#     -> Deployment + Service (NodePort per i test da localhost)
+#
+# L'immagine e' la stessa della CI (industrial-maintenance-agent:ci):
+# la si carica nel cluster con 'kind load' (vedi scripts/01-create-cluster.sh).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cmms
+  namespace: im-agent
+  labels:
+    app: cmms
+spec:
+  replicas: 1   # il seed all'avvio non e' pensato per partire 2 volte
+                # in parallelo: 1 replica. (In produzione: seed separato
+                # o idempotente + replicas > 1.)
+  selector:
+    matchLabels:
+      app: cmms
+  template:
+    metadata:
+      labels:
+        app: cmms
+    spec:
+      containers:
+        - name: cmms
+          image: industrial-maintenance-agent:ci
+          # Stesso comando del service 'cmms' di docker-compose.
+          command: ["sh", "-c", "python seed.py && uvicorn main6:app --host 0.0.0.0 --port 8010"]
+          ports:
+            - containerPort: 8010
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: im-agent-secrets
+                  key: DATABASE_URL
+            - name: CMMS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: im-agent-secrets
+                  key: CMMS_API_KEY
+          # readiness: "rispondo a /health (che verifica anche il DB)"
+          # -> il Service invia traffico solo quando il pod e' pronto.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8010
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          # liveness: "se /health non risponde piu', il pod e' wedged
+          # -> k8s lo riavvia". E' il self-healing di base.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8010
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+# NodePort: espone il Service su TUTTI i nodi del cluster (porta 30010).
+# kind.yaml mappa 30010 -> 8010 dell'host: curl http://localhost:8010/health
+apiVersion: v1
+kind: Service
+metadata:
+  name: cmms
+  namespace: im-agent
+spec:
+  type: NodePort
+  selector:
+    app: cmms
+  ports:
+    - port: 8010
+      targetPort: 8010
+      nodePort: 30010

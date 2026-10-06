@@ -1,0 +1,91 @@
+# FASE 15 - PostgreSQL (dati CMMS)
+#
+# Mappatura da docker-compose:
+#   service cmms-db (postgres:16) + volume cmms_pgdata
+#     -> Deployment + PVC + Service
+#
+# PVC (PersistentVolumeClaim): "chiedo" un volume di 100Mi senza
+# specificare dove vive: e' il cluster a decidere (su kind, disco del
+# nodo). Il volume sopravvive al riavvio dei pod, come il volume
+# 'cmms_pgdata' di compose.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cmms-pgdata
+  namespace: im-agent
+spec:
+  accessModes:
+    - ReadWriteOnce   # un solo nodo alla volta (bastevole per postgres)
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cmms-db
+  namespace: im-agent
+  labels:
+    app: cmms-db
+spec:
+  replicas: 1   # un DB non si replica cosi': replica = 2 master che si
+                # calpestano. (In produzione: replica read-only o RDS.)
+  selector:
+    matchLabels:
+      app: cmms-db
+  template:
+    metadata:
+      labels:
+        app: cmms-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: im-agent-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: im-agent-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: im-agent-secrets
+                  key: POSTGRES_DB
+          # Health check: readiness = "sono pronto a ricevere connessioni".
+          # Finche' non passa, il Service non invia traffico al pod.
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "cmms", "-d", "cmms"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: cmms-pgdata
+---
+# Service: DNS stabile (cmms-db.im-agent.svc.cluster.local, o piu'
+# semplicemente 'cmms-db' dallo stesso namespace) + bilanciamento sui pod.
+# I pod muoiono e risalgono con IP diversi: il Service no.
+apiVersion: v1
+kind: Service
+metadata:
+  name: cmms-db
+  namespace: im-agent
+spec:
+  selector:
+    app: cmms-db
+  ports:
+    - port: 5432
+      targetPort: 5432

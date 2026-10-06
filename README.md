@@ -1107,7 +1107,7 @@ curl -X POST http://localhost:8003/chat \
   -d '{"message": "P-102 ha problemi di temperatura."}'
 ```
 
-### Note
+## Note
 
 - **Porte sull'host**: 5432 (PostgreSQL), 8010 (CMMS), 8004 (Chroma;
   evito l'8000 usato dalle fasi precedenti), 8003 (agente), 11434
@@ -1304,16 +1304,67 @@ Ogni gate blocca una classe diversa di difetto, al costo più basso possibile:
    ```
    La CI parte a ogni push (e su ogni PR).
 
-2. **Runner self-hosted SUL SERVER** (GitHub → repo → Settings → Actions →
-   Runners → *New self-hosted runner*, Linux/x64): scarica il runner,
-   configuralo con il token mostrato e avvialo come servizio systemd.
-   Il job `deploy` gira su questo runner e esegue `deploy.sh` in locale:
-   i runner pubblici di GitHub non raggiungono la rete LAN, quindi
-   niente SSH e niente secret.
+2. **Runner self-hosted SUL SERVER**: il job `deploy` gira su un runner
+   installato sul server (i runner pubblici di GitHub non raggiungono la
+   LAN, quindi niente SSH). Installazione e comandi di avvio: sezione
+   **Runner self-hosted sul server** qui sotto.
 
 3. **Sul server**: la cartella del progetto deve essere un repo git con
    l'origin GitHub (`git remote -v`), perché `deploy.sh` fa `git pull`.
    L'utente del runner deve poter eseguire `docker compose` (gruppo docker).
+
+## Runner self-hosted sul server (deploy)
+
+Il job `deploy` gira su un **runner self-hosted** installato sul server:
+i runner pubblici di GitHub (cloud) non raggiungono la rete LAN
+(10.0.40.x), quindi il deploy è locale — il runner esegue
+`deploy/deploy.sh` direttamente sul server, senza SSH.
+
+### Installazione (una tantum)
+
+1. **Registra il runner su GitHub**: repo → Settings → Actions → Runners →
+   *New self-hosted runner* → Linux / x64. GitHub mostra il comando
+   `config.sh` con un **token** (valido solo per la registrazione).
+2. **Sul server**, come l'utente che eseguirà il runner (es. `gstasio`):
+   ```bash
+   cd ~
+   curl -O -L https://github.com/actions/runner/releases/download/v2.337.0/actions-runner-linux-x64-2.337.0.tar.gz
+   mkdir -p actions-runner
+   tar -xzf actions-runner-linux-x64-2.337.0.tar.gz -C actions-runner
+   cd actions-runner
+   ./config.sh --url https://github.com:<utente>/industrial-maintenance-agent --token <TOKEN>
+   sudo ./svc.sh install gstasio    # crea il servizio systemd
+   sudo ./svc.sh start
+   ```
+   Il runner deve comparire come **online** in GitHub → Settings →
+   Actions → Runners.
+
+Prerequisiti:
+
+- l'utente del runner deve poter eseguire `docker compose` (gruppo docker)
+  e `git pull` nella cartella del progetto
+  (`~/Progetti/industrial-maintenance-agent`);
+- il server deve avere accesso internet in uscita verso GitHub (il runner
+  "polla" i job ogni pochi secondi).
+
+### Avvio / arresto / verifica
+
+Il runner è un servizio systemd chiamato `actions.runner.<nome-runner>`
+(il nome è quello dato in `config.sh`):
+
+```bash
+sudo systemctl status  actions.runner.<nome-runner>   # è online?
+sudo systemctl start   actions.runner.<nome-runner>   # avvia
+sudo systemctl stop    actions.runner.<nome-runner>   # arresta
+sudo systemctl enable  actions.runner.<nome-runner>   # riparte al boot
+sudo journalctl -u actions.runner.<nome-runner> -f    # log in tempo reale
+```
+
+**Troubleshooting**: se il job `deploy` resta in coda "Waiting for a
+runner", il runner è offline: controlla `systemctl status` (tipico dopo
+un reboot del server) e che il server abbia accesso internet.
+Per aggiornare il runner: scarica il tarball della nuova versione,
+`./svc.sh stop`, estrai nella stessa cartella, `./svc.sh start`.
 
 ## Note
 
@@ -1331,3 +1382,155 @@ Ogni gate blocca una classe diversa di difetto, al costo più basso possibile:
 - **Evoluzione naturale** (fuori scope): registry (GHCR) per build-una-volta/
   deploy-artefatto, image signing, canary deploy, e notifica su canale team a
   deploy fallito.
+
+# FASE 15 - Kubernetes
+
+Ultima parte.
+
+Non perché devi necessariamente usarlo nel progetto finale, ma perché
+**è richiesto nell'annuncio come competenza preferenziale**.
+
+Impariamo gli oggetti Kubernetes e facciamo un deployment locale dello
+stack con **kind** (un cluster Kubernetes *vero* dentro un container
+Docker): gli stessi manifest, senza modifiche, gireranno poi su EKS.
+
+## Perché Kubernetes (e perché kind)
+
+docker-compose risponde a "come faccio a far girare questo stack su
+**una** macchina?". Kubernetes risponde a "come lo faccio girare su
+**N** macchine, in modo che si aggiusti da solo, scala e si deploya
+senza downtime?".
+
+| | docker-compose | Kubernetes |
+|---|---|---|
+| Unità di deploy | container | Pod (1+ container) |
+| Riavvio su guasto | `restart: always` | Deployment (controller) |
+| Scaling | manuale | HPA (automatico) |
+| Service discovery | rete fissa di compose | Service (DNS stabile) |
+| Multi-nodo | no | sì (è il punto) |
+
+**kind** crea un cluster k8s reale in cui il nodo è un container
+Docker: niente VM, niente cloud, gratis, si butta via in un comando.
+**minikube** fa la stessa cosa con una VM completa (più pesante, più
+vicino a una macchina "vera"). Per imparare: kind.
+
+## Gli oggetti (mappati sul nostro stack)
+
+| Oggetto | Cos'è | Perché esiste | Nel nostro stack |
+|---|---|---|---|
+| **Pod** | L'unità minima: 1+ container che condividono rete e storage | È il "container" di k8s, ma con vita effimera: muore e risorge | cmms, agent, chroma, postgres girano ciascuno in un pod |
+| **Deployment** | Mantiene N repliche di un pod SEMPRE attive: rollout, rollback, riavvio su guasto | Il self-healing di base | cmms (1), agent (2), chroma (1), cmms-db (1) |
+| **Service** | DNS stabile + bilanciamento del carico sui pod | I pod muoiono e risalgono con IP diversi: il Service no | `http://cmms:8010`, `http://chroma:8000` |
+| **ConfigMap** | Config NON segreta come variabili d'ambiente | Non si "cuce" la config nell'immagine | `CMMS_BASE_URL`, `CHROMA_HOST`, `OLLAMA_BASE_URL`… |
+| **Secret** | Dati sensibili (base64, NON cifrati a riposo) | Le password non stanno nell'immagine né nel repo | credenziali DB, `CMMS_API_KEY` |
+| **Job** | Un pod che deve **FINIRE** (one-shot) | Non tutto è un servizio eterno | `ingest` (costruisce l'indice Chroma) |
+| **Ingress** | Punto d'ingresso HTTP: instrada per host/path sui Service | Una porta sola per tutti i servizi | `cmms.im.local`, `agent.im.local` |
+| **Health checks** | readiness (traffico solo quando sei pronto) / liveness (riavvio se sei wedged) | Self-healing senza umani | `/health` su cmms e agent, TCP su chroma, `pg_isready` su postgres |
+| **HPA** | Regola le repliche in base alla CPU | Scaling senza cron né script | agent: 2→5 repliche |
+
+## File
+
+| File | Ruolo |
+|---|---|
+| `k8s/kind.yaml` | config del cluster kind (NodePort → porte dell'host) |
+| `k8s/namespace.yaml` | namespace `im-agent` |
+| `k8s/configmap.yaml` | variabili d'ambiente non segrete |
+| `k8s/secret.yaml` | credenziali DB + API key |
+| `k8s/cmms-db.yaml` | PostgreSQL: PVC + Deployment + Service |
+| `k8s/chroma.yaml` | Chroma: PVC + Deployment + Service |
+| `k8s/cmms.yaml` | CMMS: Deployment + Service (NodePort) |
+| `k8s/agent.yaml` | Agente: Deployment + Service (NodePort) |
+| `k8s/ingest.yaml` | Job one-shot (l'equivalente k8s del service `ingest` di compose) |
+| `k8s/ingress.yaml` | Ingress (nginx) |
+| `k8s/hpa-agent.yaml` | HPA dell'agente |
+| `k8s/scripts/01…04` | cluster → deploy → test → cleanup |
+
+## Setup: cluster kind
+
+Prerequisiti: `docker`, `kind`, `kubectl`, e Ollama in ascolto su
+tutte le interfacce (`OLLAMA_HOST=0.0.0.0 ollama serve`): i pod lo
+raggiungono via IP della LAN (`OLLAMA_BASE_URL` in `configmap.yaml`).
+
+```bash
+cd k8s
+./scripts/01-create-cluster.sh
+```
+
+Cosa fa, passo per passo (ogni passo è un concetto):
+
+1. `kind create cluster` — il cluster (il nodo è un container)
+2. `docker build` + `kind load docker-image` — l'immagine dello stack
+   (la stessa della CI) entra nel registry del cluster
+3. addon **ingress-nginx** — il "portale" che serve gli Ingress
+4. addon **metrics-server** (+ `--kubelet-insecure-tls`, workaround
+   documentato per kind) — le metriche CPU che l'HPA legge
+
+## Deploy
+
+```bash
+./scripts/02-deploy.sh
+```
+
+k8s non ha `depends_on`: è dichiarativo (descrivi LO STATO, non
+l'ordine). Quindi l'ordine lo mette lo script, con `kubectl wait` tra
+un passo e l'altro:
+
+```
+namespace + config + secret
+  -> cmms-db + chroma   (i dati)
+  -> cmms               (serve il DB)
+  -> ingest             (serve chroma + Ollama)
+  -> agent              (serve cmms + l'indice)
+  -> ingress + HPA
+```
+
+## Test
+
+```bash
+./scripts/03-test.sh
+```
+
+Due modi di raggiungere i servizi:
+
+- **NodePort** (già mappati in `kind.yaml`): `http://localhost:8010/health`
+  (CMMS), `http://localhost:8003/health` (agente)
+- **Ingress** (serve ingress-nginx + voci `/etc/hosts`):
+  `http://cmms.im.local`, `http://agent.im.local`
+
+## Scaling (HPA)
+
+```bash
+# guarda l'HPA al lavoro (colonna REPLICAS)
+kubectl -n im-agent get hpa -w
+
+# genera carico
+for i in $(seq 1 50); do curl -s http://localhost:8003/health > /dev/null & done
+
+# guarda le repliche salire (2 -> 3 -> ...)
+kubectl -n im-agent get pods -l app=agent
+```
+
+Nota: l'HPA scala solo se il metrics-server è attivo (passo 4 dello
+script 01); altrimenti resta fermo al minimo.
+
+## Cleanup
+
+```bash
+./scripts/04-cleanup.sh    # kind delete cluster: via tutto in un comando
+```
+
+## Da kind a EKS
+
+I manifest NON cambiano (k8s è k8s): cambia l'infrastruttura intorno.
+
+| In kind | In EKS |
+|---|---|
+| `kind load docker-image` | ECR (registry) + `imagePullSecrets` |
+| Secret in chiaro nel repo | AWS Secrets Manager + ExternalSecrets |
+| PVC con StorageClass standard (disco del nodo) | EBS (gp3) via EBS CSI driver |
+| ingress-nginx | ALB Ingress Controller |
+| PostgreSQL in un pod | RDS (DB gestito) |
+| metrics-server da installare | già incluso in EKS |
+
+Il percorso: kind (gratis, throwaway, per imparare) → EKS (pagato,
+production-ready) con gli stessi YAML.

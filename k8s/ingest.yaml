@@ -1,0 +1,48 @@
+# FASE 15 - Ingest (one-shot): costruisce l'indice Chroma da docs/*.pdf
+#
+# Mappatura da docker-compose:
+#   service ingest (python ingest.py, restart: "no")
+#     -> Job: pod che DEVE finire (success o failure), non un servizio
+#        che gira per sempre.
+#
+# k8s non ha 'depends_on': l'ordine (chroma pronto -> ingest -> agent)
+# lo gestisce il deploy (scripts/02-deploy.sh usa 'kubectl wait').
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ingest
+  namespace: im-agent
+  labels:
+    app: ingest
+spec:
+  backoffLimit: 3          # 3 tentativi prima di arrendersi
+  ttlSecondsAfterFinished: 3600   # il Job si auto-pulisce dopo 1h
+  template:
+    spec:
+      restartPolicy: Never   # un Job non riparte mai lo stesso pod:
+                             # a fallire, parte un pod FRESCO (backoff)
+      containers:
+        - name: ingest
+          image: industrial-maintenance-agent:ci
+          command: ["python", "ingest.py"]
+          env:
+            - name: DOCS_DIR
+              valueFrom:
+                configMapKeyRef:
+                  name: im-agent-config
+                  key: DOCS_DIR
+            - name: OLLAMA_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: im-agent-config
+                  key: OLLAMA_BASE_URL
+            - name: CHROMA_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: im-agent-config
+                  key: CHROMA_HOST
+            - name: CHROMA_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: im-agent-config
+                  key: CHROMA_PORT

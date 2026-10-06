@@ -1,0 +1,25 @@
+# FASE 15 - ConfigMap: configurazione NON segreta dello stack.
+#
+# Regola pratica: nel ConfigMap metti quello che potresti scrivere anche
+# nel codice (URL, host, porte, path); le cose sensibili (password,
+# API key) vanno nel Secret.
+#
+# E' l'equivalente k8s delle variabili d'ambiente di docker-compose.yml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: im-agent-config
+  namespace: im-agent
+data:
+  # L'agente parla al CMMS tramite il Service (DNS stabile, vedi
+  # k8s/cmms.yaml): dentro il cluster il nome del Service E' il DNS.
+  CMMS_BASE_URL: "http://cmms:8010"
+  CHROMA_HOST: "chroma"
+  CHROMA_PORT: "8000"
+  # Ollama resta sull'HOST (come in docker-compose): i pod lo
+  # raggiungono via IP della LAN. Ollama deve ascoltare su tutte le
+  # interfacce:  OLLAMA_HOST=0.0.0.0 ollama serve
+  # SE kind gira su un'altra macchina, cambia questo IP.
+  OLLAMA_BASE_URL: "http://10.0.40.100:11434"
+  DOCS_DIR: "/app/docs"
+  OBSERVABILITY_LOG_DIR: "/data/logs"

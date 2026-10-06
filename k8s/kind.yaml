@@ -1,0 +1,21 @@
+# FASE 15 - Config del cluster kind
+#
+# kind crea un cluster Kubernetes "vero" dentro un container Docker
+# (il nodo e' un container: niente VM, niente overhead).
+#
+# extraPortMappings: fa uscire i NodePort del cluster sulla porta
+# dell'host, cosi' puoi testare i servizi da localhost SENZA Ingress
+# (vedi k8s/scripts/03-test.sh).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha1
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # NodePort 30010 (cmms) -> 8010 sull'host
+      - containerPort: 30010
+        hostPort: 8010
+        protocol: TCP
+      # NodePort 30083 (agent) -> 8003 sull'host
+      - containerPort: 30083
+        hostPort: 8003
+        protocol: TCP
