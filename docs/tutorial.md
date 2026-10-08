@@ -1227,7 +1227,7 @@ http.server`, ...). Le chiamate API usano `VITE_API_BASE` (vuoto in
 dev): per puntare l'app buildata a un agente su un'altra origine,
 ricostruire con:
 
-```bash
+```bash  
 VITE_API_BASE=http://localhost:8003 npm run build
 ```
 
