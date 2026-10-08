@@ -24,7 +24,11 @@
 services:
   cmms-db:
     image: postgres:16
-    container_name: cmms-db
+    # Niente container_name fisso: compose gestisce il nome (docker-cmms-db-1)
+    # e il ciclo di vita. Un container_name fisso crea conflitti quando resta
+    # un container omonimo (es. dopo un reboot o un deploy fallito). La
+    # connessione al DB usa il nome del SERVIZIO 'cmms-db' (DNS interno),
+    # non il nome del container, quindi qui non cambia nulla.
     environment:
       POSTGRES_USER: cmms
       POSTGRES_PASSWORD: cmms
