@@ -1,4 +1,4 @@
-# FASE 15 - HPA (HorizontalPodAutoscaler): scaling orizzontale automatico.
+# HPA (HorizontalPodAutoscaler): scaling orizzontale automatico.
 #
 # k8s guarda la CPU media dei pod dell'agente e aggiusta le repliche
 # (2..5) per tenere la CPU sotto il 70%. E' il "scaling" della fase:

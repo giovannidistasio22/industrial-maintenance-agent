@@ -1,7 +1,7 @@
-# FASE 15 - Agente (main9.py) + HPA
+# Agente (backend/main.py) + HPA
 #
 # Mappatura da docker-compose:
-#   service agent (uvicorn main9 su 8003)
+#   service agent (uvicorn backend.main su 8003)
 #     -> Deployment + Service (NodePort) + HorizontalPodAutoscaler
 #
 # L'agente e' STATELESS (la conversazione vive nel client, la memoria
@@ -25,11 +25,18 @@ spec:
     metadata:
       labels:
         app: agent
+      # Annotazioni Prometheus: se un'instance di Prometheus gira nel
+      # cluster (o lo scrape dal fuori), l'endpoint /metrics dell'agente
+      # viene raccolto automaticamente (vedi docs/deployment.md, "Monitoring").
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8003"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: agent
           image: industrial-maintenance-agent:ci
-          command: ["uvicorn", "main9:app", "--host", "0.0.0.0", "--port", "8003"]
+          command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8003"]
           ports:
             - containerPort: 8003
           env:

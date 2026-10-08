@@ -1,12 +1,13 @@
 """
-FASE 8 - Fixture condivise dei test.
+Fixture condivise dei test.
 
 Principi:
   - Nessuna dipendenza da servizi esterni: niente PostgreSQL, niente Ollama,
     niente porte aperte.
-  - Il CMMS gira su SQLite in-memory (db.py legge DATABASE_URL all'import)
-    e l'API (main6) è raggiunta in-process via httpx.ASGITransport:
-    la catena Agent -> Tool -> CMMS è reale, solo il trasporto è finto.
+  - Il CMMS gira su SQLite in-memory (cmms/database/db.py legge DATABASE_URL
+    all'import) e l'API CMMS è raggiunta via HTTP reale (uvicorn in un thread
+    su una porta locale): la catena Agent -> Tool -> CMMS è reale, senza
+    PostgreSQL e senza porte note.
   - L'LLM dell'agente è "scriptato" (ScriptedLLM): i test verificano
     l'orchestrazione (quali tool, in che ordine, con che argomenti),
     non la qualità del modello.
@@ -20,19 +21,18 @@ import pytest
 from langchain_core.messages import AIMessage
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src"
-sys.path.insert(0, str(SRC))
+sys.path.insert(0, str(ROOT))
 
 # Deve essere impostato PRIMA dell'import di db (che legge la variabile all'import).
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
-# rag.py usa il percorso relativo "chroma_db": se esiste l'indice in src/,
-# puntalo lì anche quando pytest parte dalla radice del progetto.
+# backend/rag/pipeline.py usa il percorso relativo "chroma_db": se esiste
+# l'indice in radice, puntalo lì anche quando pytest parte da tests/.
 # CHROMA_DB_OVERRIDE permette di indicare un altro indice (es. nei test CI).
 _chroma_override = os.environ.get("CHROMA_DB_OVERRIDE")
-if _chroma_override or (SRC / "chroma_db").exists():
-    import rag
-    rag.PERSIST_DIR = _chroma_override or str(SRC / "chroma_db")
+if _chroma_override or (ROOT / "chroma_db").exists():
+    from backend.rag import pipeline
+    pipeline.PERSIST_DIR = _chroma_override or str(ROOT / "chroma_db")
 
 
 # ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ if _chroma_override or (SRC / "chroma_db").exists():
 @pytest.fixture(autouse=True)
 def _hermetic_observability(monkeypatch, tmp_path):
     """Log e export trace in una cartella temporanea per ogni test."""
-    import observability
+    from backend.services import observability
 
     monkeypatch.setattr(observability, "LOG_DIR", tmp_path / "logs")
     monkeypatch.setattr(observability, "LOG_FILE", tmp_path / "logs" / "agent.jsonl")
@@ -55,11 +55,11 @@ def _hermetic_observability(monkeypatch, tmp_path):
 
 @pytest.fixture(scope="session")
 def cmms_app():
-    """L'API CMMS (main6) con il DB SQLite in-memory creato e popolato (seed)."""
-    import main6
-    import seed
+    """L'API CMMS con il DB SQLite in-memory creato e popolato (seed)."""
+    from cmms.main import app
+    from cmms.database import seed
     seed.seed()
-    return main6.app
+    return app
 
 
 @pytest.fixture(scope="session")
@@ -104,7 +104,7 @@ def cmms_port(cmms_app):
 def cmms_http(monkeypatch, cmms_port):
     """Punta cmms_client verso l'API CMMS avviata da cmms_port."""
     import httpx
-    import cmms_client
+    from backend.services import cmms_client
 
     client = httpx.Client(
         base_url=f"http://127.0.0.1:{cmms_port}",
@@ -119,8 +119,8 @@ def cmms_http(monkeypatch, cmms_port):
 def clean_work_orders():
     """Fa partire il test dallo stato seed: elimina i work order creati dai test
     precedenti (i seed hanno id espliciti <= 1042; i nuovi partono da 1043)."""
-    import db
-    from models import WorkOrder
+    from cmms.database import db
+    from cmms.models.models import WorkOrder
     from sqlalchemy import delete
 
     with db.SessionLocal() as s:
@@ -130,7 +130,7 @@ def clean_work_orders():
 
 
 # ---------------------------------------------------------------------------
-# App dell'agente (main8) con CMMS in-process e RAG stub
+# App dell'agente con CMMS in-process e RAG stub
 # ---------------------------------------------------------------------------
 
 class _FakeRag:
@@ -145,30 +145,16 @@ class _FakeRag:
 
 @pytest.fixture()
 def agent_client(monkeypatch, cmms_http):
-    """L'app main8 (/chat) con il CMMS in-process e il RAG stub.
+    """L'app dell'agente (/chat) con il CMMS in-process e il RAG stub.
 
     L'LLM va scriptato per test con make_scripted_llm(case).
     """
-    import main8
-    import tools2
+    from backend.main import app
+    from backend.tools import registry
     from fastapi.testclient import TestClient
 
-    monkeypatch.setattr(tools2, "_rag_pipeline", _FakeRag())
-    return TestClient(main8.app)
-
-@pytest.fixture()
-def main9_client(monkeypatch, cmms_http):
-    """L'app main9 (Fase 10, observability) con il CMMS in-process e il RAG stub.
-
-    L'LLM va scriptato per test con make_scripted_llm(case).
-    """
-    import main9
-    import tools2
-    from fastapi.testclient import TestClient
-
-    monkeypatch.setattr(tools2, "_rag_pipeline", _FakeRag())
-    return TestClient(main9.app)
-
+    monkeypatch.setattr(registry, "_rag_pipeline", _FakeRag())
+    return TestClient(app)
 
 # ---------------------------------------------------------------------------
 # LLM scriptato (per i test dell'agente, senza Ollama)
@@ -207,7 +193,7 @@ class ScriptedLLM:
 
         def _call(prompt):
             self.structured_calls.append(name)
-            import nodes  # import qui dentro: non serve ai test che non usano l'agente
+            from backend.agent import nodes  # import qui dentro: non serve ai test che non usano l'agente
 
             if name == "AnalysisDecision":
                 if self.tools:
@@ -271,7 +257,7 @@ class ScriptedLLM:
 @pytest.fixture()
 def make_scripted_llm(monkeypatch):
     """Crea uno ScriptedLLM per un caso del dataset e lo applica a nodes._llm."""
-    import nodes
+    from backend.agent import nodes
 
     def _make(case: dict) -> ScriptedLLM:
         llm = ScriptedLLM(case)

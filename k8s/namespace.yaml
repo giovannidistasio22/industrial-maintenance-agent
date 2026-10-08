@@ -1,4 +1,4 @@
-# FASE 15 - Namespace: "cartella" logica del cluster.
+# Namespace: "cartella" logica del cluster.
 # Isola i nostri oggetti (nomi, RBAC, policy) dal resto del cluster.
 apiVersion: v1
 kind: Namespace

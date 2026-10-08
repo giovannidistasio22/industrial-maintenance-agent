@@ -1,24 +1,32 @@
-# Pacchetti NON già presenti nell'ambiente "myenv" creato in precedenza
-# (myenv ha già: python 3.12, fastapi, pydantic, langchain, langgraph, langsmith)
+# Dipendenze COMPLETE del progetto (backend + cmms + agente).
+# Le versioni sono quelle dell'ambiente "agent" usato in sviluppo
+# (in particolare langchain-ollama >= 1.1, richiesto dall'osservabilita').
 
 # --- Server ---
-uvicorn[standard]
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+pydantic==2.13.5
 
 # --- CMMS (backend + PostgreSQL) ---
-sqlalchemy>=2.0
+sqlalchemy==2.1.0
 psycopg[binary]>=3.1
 
 # --- Agente ---
-httpx
-langchain-ollama
-langchain-community
-langchain-chroma
-langchain-text-splitters
-chromadb
-pypdf
+httpx==0.28.1
+langchain==1.4.2
+langchain-core==1.6.5
+langchain-community==0.4.2
+langchain-chroma==1.1.0
+langchain-ollama==1.1.0
+langchain-text-splitters==1.1.2
+langgraph==1.2.12
+langsmith==0.14.0
+chromadb==1.5.9
+ollama==0.6.2
+pypdf==6.19.0
 
 # Opzionale: memoria conversazionale persistente su SQLite (se imposti CHECKPOINT_DB)
 langgraph-checkpoint-sqlite
 
-# Test
+# --- Test ---
 pytest

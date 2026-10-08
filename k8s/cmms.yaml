@@ -1,4 +1,4 @@
-# FASE 15 - CMMS (API REST, main6.py)
+# CMMS (API REST, cmms/main.py)
 #
 # Mappatura da docker-compose:
 #   service cmms (immagine dello stack, seed + uvicorn su 8010)
@@ -29,7 +29,7 @@ spec:
         - name: cmms
           image: industrial-maintenance-agent:ci
           # Stesso comando del service 'cmms' di docker-compose.
-          command: ["sh", "-c", "python seed.py && uvicorn main6:app --host 0.0.0.0 --port 8010"]
+          command: ["sh", "-c", "python -m cmms.database.seed && uvicorn cmms.main:app --host 0.0.0.0 --port 8010"]
           ports:
             - containerPort: 8010
           env:

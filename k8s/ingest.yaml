@@ -1,7 +1,7 @@
-# FASE 15 - Ingest (one-shot): costruisce l'indice Chroma da docs/*.pdf
+# Ingest (one-shot): costruisce l'indice Chroma da data/manuals/*.pdf
 #
 # Mappatura da docker-compose:
-#   service ingest (python ingest.py, restart: "no")
+#   service ingest (python -m backend.rag.ingest, restart: "no")
 #     -> Job: pod che DEVE finire (success o failure), non un servizio
 #        che gira per sempre.
 #
@@ -24,7 +24,7 @@ spec:
       containers:
         - name: ingest
           image: industrial-maintenance-agent:ci
-          command: ["python", "ingest.py"]
+          command: ["python", "-m", "backend.rag.ingest"]
           env:
             - name: DOCS_DIR
               valueFrom:

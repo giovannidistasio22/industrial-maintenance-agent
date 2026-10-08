@@ -1,4 +1,4 @@
-# FASE 15 - ConfigMap: configurazione NON segreta dello stack.
+# ConfigMap: configurazione NON segreta dello stack.
 #
 # Regola pratica: nel ConfigMap metti quello che potresti scrivere anche
 # nel codice (URL, host, porte, path); le cose sensibili (password,
@@ -21,5 +21,5 @@ data:
   # interfacce:  OLLAMA_HOST=0.0.0.0 ollama serve
   # SE kind gira su un'altra macchina, cambia questo IP.
   OLLAMA_BASE_URL: "http://10.0.40.100:11434"
-  DOCS_DIR: "/app/docs"
+  DOCS_DIR: "/app/data/manuals"
   OBSERVABILITY_LOG_DIR: "/data/logs"

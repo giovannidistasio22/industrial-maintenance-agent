@@ -6,16 +6,16 @@ __pycache__/
 .venv/
 
 # --- Artefatti locali (in Docker i DB sono esterni: PostgreSQL + server Chroma) ---
-src/chroma_db/
-src/cmms.db
+chroma_db/
+cmms.db
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
 logs/
 
 # --- Frontend ---
-web/node_modules/
-web/dist/
+frontend/node_modules/
+frontend/dist/
 
 # --- Segreti / ambiente locale ---
 .env
@@ -25,5 +25,5 @@ web/dist/
 # --- Ollama / sistema ---
 *.log
 
-# Indice Chroma rigenerabile (python evals/build_index.py --out evals/indices/chroma_v2)
-evals/indices/
+# Indice Chroma rigenerabile (python tests/evaluation/build_index.py --out data/evaluation/indices/chroma_v2)
+data/evaluation/indices/

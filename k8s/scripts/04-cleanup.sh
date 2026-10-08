@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# FASE 15 - 4/4: elimina il cluster (e tutto quello che ci gira).
+# 4/4: elimina il cluster (e tutto quello che ci gira).
 # kind e' pensato per essere throwaway: quando hai finito, via.
 set -euo pipefail
 

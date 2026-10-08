@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# FASE 13 - Script di deploy, ESEGUITO SULLO SERVER dalla CI (via SSH).
+# Script di deploy, ESEGUITO SULLO SERVER dalla CI (runner self-hosted).
 #
 # La CI non "spara" comandi a caso sul server: esegue questo script,
 # revisionato nel repo. Il deploy e' riproducibile e leggibile.
@@ -10,7 +10,7 @@ echo "==> Aggiorno il codice"
 git pull
 
 echo "==> Ricostruisco l'immagine e riavvio lo stack (volumi preservati)"
-docker compose up --build -d
+docker compose -f docker/docker-compose.yml up --build -d
 
 echo "==> Attendo il health del CMMS (DB up)"
 for i in $(seq 1 60); do
@@ -18,7 +18,7 @@ for i in $(seq 1 60); do
     echo "CMMS ok (tentativo $i)"
     break
   fi
-  [ "$i" -eq 60 ] && { echo "FAIL: CMMS non risponde"; docker compose logs --tail=20 cmms; exit 1; }
+  [ "$i" -eq 60 ] && { echo "FAIL: CMMS non risponde"; docker compose -f docker/docker-compose.yml logs --tail=20 cmms; exit 1; }
   sleep 2
 done
 
@@ -28,7 +28,7 @@ for i in $(seq 1 30); do
     echo "Agente ok (tentativo $i)"
     break
   fi
-  [ "$i" -eq 30 ] && { echo "FAIL: agente non risponde"; docker compose logs --tail=20 agent; exit 1; }
+  [ "$i" -eq 30 ] && { echo "FAIL: agente non risponde"; docker compose -f docker/docker-compose.yml logs --tail=20 agent; exit 1; }
   sleep 2
 done
 

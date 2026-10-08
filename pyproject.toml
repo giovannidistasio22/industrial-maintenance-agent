@@ -1,0 +1,56 @@
+# Progetto: industrial-maintenance-agent
+#
+# Questo file serve per:
+#   1. metadata del progetto (nome, dipendenze, Python richiesto)
+#   2. configurazione di ruff (lint Python, usata dalla CI)
+#
+# Le dipendenze sono le stesse di requirements.txt (che resta il file
+# "canonica" per pip install e per la build Docker).
+
+[project]
+name = "industrial-maintenance-agent"
+version = "0.1.0"
+description = "Agente AI per la manutenzione industriale: LangGraph + RAG + CMMS (FastAPI, Ollama, Chroma, PostgreSQL)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.141.1",
+    "uvicorn[standard]==0.53.0",
+    "pydantic==2.13.5",
+    "sqlalchemy==2.1.0",
+    "psycopg[binary]>=3.1",
+    "httpx==0.28.1",
+    "langchain==1.4.2",
+    "langchain-core==1.6.5",
+    "langchain-community==0.4.2",
+    "langchain-chroma==1.1.0",
+    "langchain-ollama==1.1.0",
+    "langchain-text-splitters==1.1.2",
+    "langgraph==1.2.12",
+    "langsmith==0.14.0",
+    "chromadb==1.5.9",
+    "ollama==0.6.2",
+    "pypdf==6.19.0",
+    "langgraph-checkpoint-sqlite",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+# ---------------------------------------------------------------------------
+# ruff (lint Python: backend/, cmms/, tests/)
+#
+# Regole: il set di default di ruff (E4, E7, E9, F = errori pycodestyle +
+# pyflakes). Deliberatamente conservativo: la CI deve essere verde e
+# stabile; le regole si allargano qui (es. "I" per isort, "B" per bugbear)
+# quando il codice e' gia' pulito sul set base.
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

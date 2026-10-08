@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# FASE 15 - 2/4: deploya lo stack nel cluster, nell'ordine giusto.
+# 2/4: deploya lo stack nel cluster, nell'ordine giusto.
 #
 # k8s non ha 'depends_on' (e' un sistema dichiarativo: descrivi LO
 # STATO, non l'ordine). Quindi l'ordine lo mettiamo NOI qui, con

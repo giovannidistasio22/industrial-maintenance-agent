@@ -1,4 +1,4 @@
-# FASE 15 - PostgreSQL (dati CMMS)
+# PostgreSQL (dati CMMS)
 #
 # Mappatura da docker-compose:
 #   service cmms-db (postgres:16) + volume cmms_pgdata

@@ -1,4 +1,4 @@
-# FASE 15 - Chroma (vector DB dei manuali)
+# Chroma (vector DB dei manuali)
 #
 # Mappatura da docker-compose:
 #   service chroma (chromadb/chroma:1.5.9) + volume chroma_data
@@ -34,11 +34,37 @@ spec:
       labels:
         app: chroma
     spec:
+      # k8s inietta automaticamente nelle variabili d'ambiente del Pod le
+      # variabili dei Service del namespace (service links), incluso
+      # CHROMA_PORT=tcp://<svc-ip>:8000. Il frontend Rust del Chroma 1.x
+      # legge TUTTE le CHROMA_* e prova a parsare "PORT" come u16 ->
+      # panic "expected u16 for key PORT" a ogni avvio (CrashLoopBackOff).
+      # Disattivando i service links l'iniezione non avviene affatto: e'
+      # la fix definitiva (le env esplicite sotto restano come rete di
+      # sicurezza).
+      enableServiceLinks: false
       containers:
         - name: chroma
           image: chromadb/chroma:1.5.9
           ports:
             - containerPort: 8000
+          # Fissiamo host/port in modo esplicito cosi' il loader di config
+          # riceve valori numerici validi (e non mai l'URL di un Service).
+          env:
+            # Chiavi piatte (config key "PORT"/"HOST") e chiavi annidate
+            # ("SERVER.PORT"/"SERVER.HOST"): copriamo entrambe le strutture
+            # di config del frontend 1.x cosi' il loader non trova mai
+            # l'URL del Service dove si aspetta un u16.
+            - name: CHROMA_HOST
+              value: "0.0.0.0"
+            - name: CHROMA_PORT
+              value: "8000"
+            - name: CHROMA_SERVER_HOST
+              value: "0.0.0.0"
+            - name: CHROMA_SERVER_PORT
+              value: "8000"
+            - name: CHROMA_PERSIST_PATH
+              value: "/data"
           # L'immagine e' minimale (niente curl): health check TCP via
           # bash, stesso trucco del healthcheck di docker-compose.
           readinessProbe:

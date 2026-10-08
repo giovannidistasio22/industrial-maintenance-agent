@@ -1,0 +1,1 @@
+"""Modelli SQLAlchemy del CMMS."""
