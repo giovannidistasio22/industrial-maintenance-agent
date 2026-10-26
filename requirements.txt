@@ -23,7 +23,7 @@ langgraph==1.2.12
 langsmith==0.14.0
 chromadb==1.5.9
 ollama==0.6.2
-pypdf==6.19.0
+pypdf==6.21.2
 
 # Opzionale: memoria conversazionale persistente su SQLite (se imposti CHECKPOINT_DB)
 langgraph-checkpoint-sqlite

@@ -29,7 +29,7 @@ dependencies = [
     "langsmith==0.14.0",
     "chromadb==1.5.9",
     "ollama==0.6.2",
-    "pypdf==6.19.0",
+    "pypdf==6.21.2",
     "langgraph-checkpoint-sqlite",
 ]
 
