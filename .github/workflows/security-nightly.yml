@@ -5,11 +5,20 @@
 # finche' non viene ricompilata. La gate Trivy in CI (ci.yml) blocca il
 # deploy solo al prossimo push, che potrebbe essere tra giorni. Questo
 # workflow ricompila l'immagine OGNI notte e la scansiona: cosi' una nuova
-# CVE sulla base image emerge come job rosso la mattina, e si risolve con
-# un push (la base image fluttuante + apt-get upgrade nel Dockerfile
-# bastano a incorporare il fix).
+# CVE sulla base image emerge la mattina, e si risolve con un push (la base
+# image fluttuante + apt-get upgrade nel Dockerfile bastano a incorporare
+# il fix).
 #
-# NON deploya: e' solo un allarme precoce.
+# NIENTE EMAIL: GitHub manda le email "workflow run failed" in base alle
+# impostazioni di notifica dell'ACCOUNT (non c'e' un interruttore per
+# singolo workflow). Per non riceverle, questo workflow NON fallisce mai
+# intenzionalmente (Trivy/pip-audit con exit code 0). Gli alert restano
+# visibili in:
+#   - Security -> Code scanning  (report SARIF caricato da Trivy)
+#   - riepilogo del run          (job summary con i report testuali)
+#   - warning nel log del run    (annotazioni gialle, non notificanti)
+# La gate che BLOCCA davvero il deploy resta in ci.yml (job "security"):
+# quella si' deve diventare rossa su una CVE.
 
 name: Security Nightly
 
@@ -22,11 +31,15 @@ concurrency:
   group: security-nightly
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  security-events: write   # necessario per upload-sarif
+
 env:
   PYTHON_VERSION: "3.12"
 
 jobs:
-  # Stessa build + stessa gate della pipeline CI, ma senza deploy.
+  # Stessa build della pipeline CI, ma senza deploy e senza far fallire il run.
   scan:
     runs-on: ubuntu-latest
     steps:
@@ -39,19 +52,71 @@ jobs:
           file: docker/Dockerfile
           tags: industrial-maintenance-agent:ci
           load: true
-      - name: Trivy (vulnerabilita' dell'immagine)
+
+      # exit-code: "0" => il run resta verde anche con CVE: nessuna email.
+      - name: Trivy (SARIF per Security -> Code scanning)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "industrial-maintenance-agent:ci"
-          exit-code: "1"
+          exit-code: "0"
           severity: "HIGH,CRITICAL"
           ignore-unfixed: true
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Trivy (report leggibile per il riepilogo)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: "industrial-maintenance-agent:ci"
+          exit-code: "0"
+          severity: "HIGH,CRITICAL"
+          ignore-unfixed: true
+          format: "table"
+          output: "trivy-report.txt"
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-image
+
       - name: pip-audit (dipendenze Python)
         run: |
-          pip install pip-audit
+          pip install pip-audit || true
           # Allowlist documentata: vedi .github/workflows/ci.yml
           pip-audit -r requirements.txt \
             --ignore-vuln PYSEC-2026-311 \
             --ignore-vuln PYSEC-2026-3813 \
             --ignore-vuln PYSEC-2026-3814 \
-            --ignore-vuln PYSEC-2026-3815
+            --ignore-vuln PYSEC-2026-3815 \
+            > pip-audit-report.txt 2>&1 || true
+
+      - name: Annotazioni (visive, non fanno fallire il run)
+        if: always()
+        run: |
+          if grep -Eq '^Total: [1-9]' trivy-report.txt 2>/dev/null; then
+            echo "::warning title=Trivy::Vulnerabilita' HIGH/CRITICAL nell'immagine: vedi Security -> Code scanning"
+          fi
+          if grep -Eq 'Found [1-9][0-9]* known vulnerabilit' pip-audit-report.txt 2>/dev/null; then
+            echo "::warning title=pip-audit::Vulnerabilita' nelle dipendenze Python: vedi il riepilogo del run"
+          fi
+
+      - name: Riepilogo del run
+        if: always()
+        run: |
+          {
+            echo "## Security Nightly"
+            echo ""
+            echo "Scan completato. Il run non fallisce: gli alert sono in"
+            echo "**Security -> Code scanning** e nei report qui sotto."
+            echo ""
+            echo "### Trivy (immagine)"
+            echo '```'
+            cat trivy-report.txt 2>/dev/null || echo "report non disponibile"
+            echo '```'
+            echo ""
+            echo "### pip-audit (dipendenze Python)"
+            echo '```'
+            cat pip-audit-report.txt 2>/dev/null || echo "report non disponibile"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
